@@ -1,0 +1,248 @@
+You're trying to build the Chopsticks version of Stockfish — let’s call it Chopfish (or Stockfingers, lmao). It’ll be an engine that not only predicts and evaluates positions, but also makes optimal moves using both search and a dataset of solved games as an oracle.
+
+Buckle up — here's everything we can and should do.
+
+---
+
+GOAL: Chopsticks Engine with AI & Dataset Integration
+
+What It Should Do
+
+1. Evaluate any given board state
+
+2. Suggest the best move (like Stockfish)
+
+3. Play complete games against humans or AIs
+
+4. Fallback to perfect data when possible (from the ≤10-move dataset)
+
+5. Learn dynamically over time (if we go neural later)
+
+---
+
+CORE ARCHITECTURE
+
+1. Input Module
+
+Accepts a state input in format like = 2-3 | 1-2
+
+Parses it into usable data structure (tuples or object)
+
+---
+
+2. Solved Game Lookup (Oracle Mode)
+
+When engine is fed a state:
+
+It hashes it or pattern-matches it against your solved ≤10-move database
+
+If found:
+
+Returns the exact best move from that dataset
+
+Also tells user: “Perfect line found. Forced mate in 5.”
+
+If not found: passes it to the search/eval engine
+
+> This makes your engine super fast for endgames and absolutely unbeatable once the opponent is in the trap zone
+
+---
+
+3. Evaluation Engine (Search Mode)
+
+If state isn't in solved DB:
+
+Starts minimax or alpha-beta pruning search from current state
+
+Evaluates future states using:
+
+Terminal scoring (+∞ if you win, -∞ if opponent does)
+
+Heuristics if needed (see below)
+
+Prunes bad branches
+
+Returns:
+
+Best move
+
+Evaluation score
+
+Path preview (e.g. predicted next 3 moves)
+
+---
+
+4. Evaluation Function (Your "positional brain")
+
+Possible Heuristics:
+
+Number of alive hands (2 vs 1 = strong)
+
+Fingers advantage (4|3 vs 1|1? Big lead)
+
+Trap setup potential (e.g., baiting into mod-5 wrap)
+
+Split potential (flexibility > rigidity)
+
+Dead hand state (1|0 = vulnerability)
+
+Mirror lock (can't split? you're stuck, bad eval)
+
+Score each state with a total number, e.g. +50 good, -100 bad.
+
+---
+
+5. Move Generator
+
+Already exists in your script:
+
+All legal taps
+
+All legal splits (filtering out reversals, 1|0, etc.) Just reuse that engine, make it cleanly callable from any function.
+
+---
+
+6. Search Tree Visualization (optional but sexy)
+
+Could show in console:
+
+Evaluating: 2-3|1-1
+ ├── P1L>P2L → 2-3|3-1
+ │    ├── P2R>P1R → 2-4|3-1
+ │    └── ...
+
+Shows path depth, move scores, etc.
+
+---
+
+BONUS FEATURES
+
+Opening Book
+
+Like chess has “Sicilian Defense,” Chopsticks has opening metas:
+
+Fast kills
+
+Bait-split traps
+
+Defensive splits to 1|1
+
+You could build an opening library from all games ending in ≤6 moves and prioritize them if starting from 1-1|1-1.
+
+---
+
+Blunder Detection
+
+If a player plays:
+
+A move that leads to forced loss
+
+When a better option exists (provable win)
+
+Engine can:
+
+Flag it as a blunder
+
+Suggest a refutation line
+
+---
+
+Engine Strength Tiers
+
+Add difficulty modes:
+
+Novice: plays legal moves randomly
+
+Intermediate: uses shallow minimax (2–3 moves ahead)
+
+Master: uses deep pruning + dataset fallback
+
+---
+
+Integration With UI
+
+Imagine if this were in a GUI like:
+
+Buttons for each tap/split
+
+Engine reacts instantly
+
+Shows score bar like chess.com
+
+---
+
+Multiplayer Analysis
+
+Let two humans play, engine watches silently and:
+
+Annotates each move
+
+Says things like: “Missed win in 3” or “Brilliant trap setup”
+
+---
+
+FILE STRUCTURE / COMPONENTS
+
+/chopfish_engine
+├── main.py                  # CLI/game loop
+├── engine.py                # Core logic
+├── evaluator.py             # Evaluation function
+├── search.py                # Minimax + alpha-beta pruning
+├── movegen.py               # Tap/Split generation
+├── database_lookup.py       # Fast hashed search in ≤10 DB
+├── openings.py              # Pre-analyzed strong starts
+├── models/                  # (optional ML stuff later)
+│   └── eval_net.pt
+└── data/
+    └── solved_under_10.tsv  # Precomputed perfect games
+
+---
+
+Future-Proofing: Neural Engine
+
+You could eventually train a neural net:
+
+Inputs: state representation (one-hot of fingers, maybe 8 total values)
+
+Outputs: policy (best move), and value (chances of winning)
+
+Train on the dataset you already generated!
+
+That’s how AlphaZero-style engines work — self-learn via reinforcement.
+
+---
+
+Your Stack is READY. You're Ready.
+
+You already have game rules, movegen, validation, notation, and datasets.
+
+All you need to add is:
+
+Evaluator
+
+Search
+
+Dataset lookup
+
+Optional UI/CLI loop
+
+It’s literally like having Stockfish’s rulebook and now needing the brain.
+
+Wanna start building the actual engine loop and plug in dataset lookup? I can walk you through building engine.py next.
+
+Remember this file structure
+
+/chopfish_engine
+├── main.py # CLI/game loop
+├── engine.py # Core logic
+├── evaluator.py # Evaluation function
+├── search.py # Minimax + alpha-beta pruning
+├── movegen.py # Tap/Split generation
+├── database_lookup.py # Fast hashed search in ≤10 DB
+├── openings.py # Pre-analyzed strong starts
+├── models/ # (optional ML stuff later)
+│ └── eval_net.pt
+└── data/
+└── solved_under_10.tsv # Precomputed perfect games
+
+Ive attached a prompt and a file, the prompt is describing rules and notations of game, the file, Ive attached a script for creating the precounted games, run that script and keep a certain amount of games in the storage of that file

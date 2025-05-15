@@ -1,0 +1,242 @@
+Canvas 
+
+Prompt for Dataset Generation
+(approx. 4 000 words’ worth of detail, boiled down to every little spec you need — just paste this into the AI of your choice and watch it churn out CSV/TSV rows like a pro Chopsticks recorder)
+
+---
+
+1. Mission Statement
+
+You are ChopDataBot, an AI engine whose sole job is to generate complete, legal, provably valid game transcripts of two-player Chopsticks matches under the “Pro Chopsticks” rule set.
+
+For each game, output every turn as a separate row in spreadsheet format (CSV or TSV).
+
+Each row must include: turn number, prior state, move notation, resulting state, any error tags if illegal, and a winner flag when the game ends.
+
+Your goal is to produce a diverse dataset of thousands of games covering:
+
+All legal tap moves
+
+All legal splits
+
+Attempts at illegal splits (with error tags)
+
+Attempts at reversed or repeated states (with error tags)
+
+Terminal states and winners
+
+The final dataset will be used to train and test a Chopsticks-engine parser, move validator, and eventual game-AI.
+
+---
+
+2. Notation Conventions
+
+State notation (=):
+
+= P1L-P1R | P2L-P2R
+
+P1L = Player 1 Left finger count (0–4)
+
+P1R = Player 1 Right finger count (0–4)
+
+P2L and P2R likewise for Player 2
+
+> Example:
+= 2-0 | 1-3
+means Player 1 has (2 left, 0 right) and Player 2 has (1 left, 3 right).
+
+Move notation (!):
+
+Tap:
+
+! P{n}{H1}>P{m}{H2}
+
+n = attacker (1 or 2)
+
+H1 = “L” or “R” for attacker’s hand
+
+m = defender (1 or 2)
+
+H2 = “L” or “R” for defender’s hand
+
+> Example: ! P1L>P2R (Player 1 left taps Player 2 right)
+
+Split:
+
+! Sp(P{n}:X|Y → U|V)
+
+n = splitting player (1 or 2)
+
+X|Y = pre-split counts
+
+U|V = post-split counts
+
+> Example: ! Sp(P2:4|0 → 2|2)
+
+Winner declaration:
+
+#P1
+
+or
+
+#P2
+
+immediately after the move that kills both opposing hands. No further rows after a winner.
+
+---
+
+3. Rule Set & Validation Logic
+
+1. mod 5 arithmetic:
+
+Whenever a tap would raise a hand’s count ≥ 5, compute (old + added) mod 5.
+
+If result = 0, the hand is “dead” but still tracked in state as 0.
+
+2. Splitting constraints:
+
+Allowed only when:
+
+Player’s total fingers ≥ 2
+
+Both hands pre-split are not (0|0)
+
+Post-split distribution uses all fingers, no remainder.
+
+You may not reverse a previous state exactly (e.g. 3|4 → 4|3 banned).
+
+You may not split from 1|0 because 1 cannot divide.
+
+3. No shifting revivals:
+
+If one hand = 0, you cannot move fingers from your alive hand to bring it back unless both hands are ≥ 2 or you perform a legal split as above.
+
+4. Anti-loop / no repetition:
+
+Once a complete 4-hand state (P1L-P1R|P2L-P2R) has occurred, it cannot re-appear later in the same game.
+
+If a move would recreate any prior entire state, it is illegal.
+
+5. Terminal condition:
+
+A player loses when both their hands are 0.
+
+The move that causes the opponent’s last non-zero hand to become 0 triggers #Px, and the game ends.
+
+6. Illegal-move tagging:
+
+If a move violates any rule (mod 5, split, reversal, repetition), the resulting state should not change from the prior state.
+
+Append an extra column Error with a short code:
+
+ERR_OVERFLOW (if adding > available fingers)
+
+ERR_INVALID_SPLIT
+
+ERR_REVERSAL
+
+ERR_REPEAT
+
+> Example row for illegal reversal:
+
+Turn,State,Move,NextState,Error,Winner  
+5,2-3|1-4,! Sp(P1:5|0 → 2|3),2-3|1-4,ERR_REVERSAL,
+
+---
+
+4. Spreadsheet Schema
+
+Your output table must have these columns in order:
+
+Column	Description
+
+GameID	Unique identifier for each game (e.g. “G0001”, “G0002”, …)
+Turn	Integer turn number, starting from 1 and incrementing each move
+State	Pre-move state string (`= P1L-P1R
+Move	Move string without the leading ! prefix (e.g. P1L>P2R or `Sp(P2:4
+NextState	Post-move state string in same format as State
+Error	Blank if legal; else one of the ERR_* codes
+Winner	Blank until the terminal move, then P1 or P2
+
+> Note: In CSV, quotes and commas must be escaped properly. You may choose TSV to avoid escaping pain.
+
+---
+
+5. Data Variety Requirements
+
+At least 1 000 games, each with 5–30 turns.
+
+Mix of:
+
+Quick kills (2–6 turns)
+
+Longer strategic battles (15–30 turns)
+
+Games ending on legal moves
+
+Sequences containing 10–15 illegal attempts (tagged) before a legal finish
+
+Balanced P1/P2 win distribution (~50/50)
+
+---
+
+6. Sample Rows
+
+GameID,Turn,State,Move,NextState,Error,Winner
+G0001,1,1-1|1-1,P1L>P2R,1-1|1-2,,
+G0001,2,1-1|1-2,P2R>P1L,3-1|1-2,,
+G0001,3,3-1|1-2,Sp(P1:3|1→2|2),2-2|1-2,,
+G0001,4,2-2|1-2,P1R>P2L,2-2|3-2,,
+G0001,5,2-2|3-2,P2L>P1L,2-2|3-2,ERR_REPEAT,
+G0001,5,2-2|3-2,P2L>P1L,2-2|3-2,ERR_REPEAT,
+G0001,6,2-2|3-2,P2R>P1R,2-2|3-3,,
+G0001,7,2-2|3-3,P1L>P2L,3-2|3-3,,
+G0001,8,3-2|3-3,P2L>P1R,3-2|3-0,,
+G0001,9,3-2|3-0,P1L>P2R,4-2|3-0,,
+G0001,10,4-2|3-0,P2L>P1L,4-2|2-0,,
+G0001,11,4-2|2-0,P1R>P2R,4-3|2-0,,
+G0001,12,4-3|2-0,P2L>P1L,3-3|2-0,,
+G0001,13,3-3|2-0,P1L>P2L,4-3|2-0,ERR_REPEAT,
+G0001,14,3-3|2-0,P1R>P2R,3-4|2-0,,
+G0001,15,3-4|2-0,P2R>P1R,3-4|2-2,,
+G0001,16,3-4|2-2,P1L>P2L,4-4|2-2,,
+G0001,17,4-4|2-2,P2L>P1R,4-4|2-0,,
+G0001,18,4-4|2-0,P1L>P2L,0-4|2-0,,P1
+
+---
+
+7. Generation Instructions
+
+1. Initialize GameID counter at G0001.
+
+2. For each game:
+
+Start at = 1-1 | 1-1.
+
+Randomly choose legal moves according to the branching rules (tap or split).
+
+Every few turns, inject 1–3 illegal attempts (split, reversal, repeat). Tag them as ERR_* and keep the state unchanged.
+
+Continue until either P1 or P2 has 0-0. Tag the final row’s Winner.
+
+3. Ensure no state repeats across turns (enforce anti-loop).
+
+4. Alternate who starts first to balance P1/P2 wins.
+
+5. Vary game lengths: short (5–10 turns), medium (11–20), long (21–30).
+
+6. Export all rows in one monolithic CSV/TSV with the header row.
+
+---
+
+8. Extra Credit (Optional)
+
+Add a column Comment for human-readable notes:
+
+"P2 set up a 2-2 split, ready to counter the mod-5 trap."
+
+Include metadata at top: total games, aveAlteranatively you can generate a python script with every rule and regulation included which when runs generates this gamerage length, error rate.
+
+---
+
+That’s it. Paste that entire block into your AI, hit “Generate,” and in minutes you’ll have a massive, fully-tagged spreadsheet of every Chopsticks twist and loophole imaginable. No more hand-tallying, no more endless loops—just clean, engine-ready data.Alteranatively you can generate a python script with every rule and regulation included which when runs generates this game

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Chopfish - Game Rules</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="row mb-4">
+            <div class="col-md-8">
+                <h1><i class="bi bi-hand-index-thumb"></i> Chopfish</h1>
+                <p class="lead">An advanced Chopsticks game engine with AI capabilities</p>
+            </div>
+            <div class="col-md-4 d-flex justify-content-end align-items-center">
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-controller"></i> Play Game
+                </a>
+                <a href="https://github.com/your-repo/chopfish" target="_blank" class="btn btn-outline-secondary">
+                    <i class="bi bi-github"></i> GitHub
+                </a>
+            </div>
+        </header>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">Chopsticks Game Rules</h3>
+                    </div>
+                    <div class="card-body">
+                        <h4>Introduction</h4>
+                        <p>
+                            Chopsticks (also known as "Fingers") is a hand game played by two players. Each player starts with 1 finger on each hand, and the objective is to make your opponent have 0 fingers on both hands.
+                        </p>
+
+                        <h4>Game Setup</h4>
+                        <p>
+                            Each player begins with 1 finger extended on each hand, represented as "1-1" for each player.
+                            The initial game state is notated as "= 1-1 | 1-1", where the notation means "Player 1 Left-Right | Player 2 Left-Right".
+                        </p>
+
+                        <h4>Game Moves</h4>
+                        <p>
+                            On a player's turn, they must make one of two possible moves:
+                        </p>
+
+                        <h5>1. Tap</h5>
+                        <p>
+                            A player can tap one of their non-dead hands (hand with at least 1 finger) against one of their opponent's non-dead hands.
+                            This adds the number of fingers on the attacking hand to the defending hand.
+                            The resulting number is calculated using modulo 5 arithmetic.
+                            When a hand's count reaches exactly 5, it "dies" and is set to 0.
+                        </p>
+                        <div class="alert alert-info">
+                            <strong>Example:</strong> If Player 1 has 2 fingers on their left hand and taps Player 2's right hand which has 3 fingers, Player 2's right hand will have (2+3) % 5 = 0 fingers after the tap. The notation would be: <code>P1L>P2R</code>
+                        </div>
+
+                        <h5>2. Split</h5>
+                        <p>
+                            A player can redistribute their fingers between their two hands, provided:
+                        </p>
+                        <ul>
+                            <li>The total number of fingers remains the same</li>
+                            <li>Both hands have between 0 and 4 fingers after the split</li>
+                            <li>The resulting configuration is different from the current one</li>
+                            <li>The player has at least 2 total fingers</li>
+                            <li>The split does not reverse the current state (e.g., 1-3 → 3-1 is not allowed)</li>
+                            <li>Cannot split from a 1-0 or 0-1 configuration</li>
+                        </ul>
+                        <div class="alert alert-info">
+                            <strong>Example:</strong> If Player 2 has 4 fingers on their left hand and 0 on their right, they could split to 2-2. The notation would be: <code>Sp(P2:4|0 → 2|2)</code>
+                        </div>
+
+                        <h4>Additional Rules</h4>
+                        <h5>State Repetition</h5>
+                        <p>
+                            A complete game state (all 4 hands' values) cannot be repeated during a game. If a move would recreate a previous state, it is illegal.
+                        </p>
+
+                        <h5>Game End</h5>
+                        <p>
+                            The game ends when one player has 0 fingers on both hands. That player loses, and the other player wins.
+                        </p>
+
+                        <h4>Notation</h4>
+                        <p>
+                            Chopfish uses the following notation system:
+                        </p>
+                        <ul>
+                            <li><strong>State:</strong> = P1L-P1R | P2L-P2R</li>
+                            <li><strong>Tap:</strong> P{n}{H1}>P{m}{H2} where n is the attacker, H1 is L/R for the attacker's hand, m is the defender, and H2 is L/R for the defender's hand</li>
+                            <li><strong>Split:</strong> Sp(P{n}:X|Y → U|V) where n is the splitting player, X|Y is pre-split, and U|V is post-split</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h3 class="mb-0">About Chopfish Engine</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>
+                            Chopfish is an advanced Chopsticks game engine inspired by chess engines like Stockfish. It combines several powerful techniques to play optimal Chopsticks:
+                        </p>
+
+                        <h4>Features</h4>
+                        <ul>
+                            <li><strong>Pre-computed Database:</strong> Contains perfect play for all positions within 10 moves of the game start</li>
+                            <li><strong>Minimax Search:</strong> Looks ahead multiple moves to find the best play when outside the database</li>
+                            <li><strong>Alpha-Beta Pruning:</strong> Optimizes the search by eliminating branches that won't affect the final decision</li>
+                            <li><strong>Position Evaluation:</strong> Analyzes positions based on finger counts, hand states, and tactical opportunities</li>
+                            <li><strong>Multiple Difficulty Levels:</strong> Choose between Novice, Intermediate, and Master difficulty levels</li>
+                        </ul>
+
+                        <h4>Engine Components</h4>
+                        <p>
+                            The Chopfish engine consists of several components:
+                        </p>
+                        <ul>
+                            <li><strong>Evaluator:</strong> Assigns scores to game positions</li>
+                            <li><strong>Move Generator:</strong> Creates all legal taps and splits</li>
+                            <li><strong>Search:</strong> Looks ahead to find the best move</li>
+                            <li><strong>Database Lookup:</strong> Retrieves perfectly solved positions</li>
+                        </ul>
+
+                        <h4>Why "Chopfish"?</h4>
+                        <p>
+                            The name "Chopfish" is a playful combination of "Chopsticks" and "Stockfish" (the world's strongest open-source chess engine), reflecting our goal of creating the strongest possible Chopsticks AI.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mt-3 mt-lg-0">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Strategy Tips</h4>
+                    </div>
+                    <div class="card-body">
+                        <h5>Opening Strategies</h5>
+                        <ul>
+                            <li><strong>Fast Attack:</strong> Aggressively tap to eliminate one of your opponent's hands quickly</li>
+                            <li><strong>Defensive Split:</strong> Split to 1-1 or 2-2 to avoid giving your opponent easy targets</li>
+                            <li><strong>Mod-5 Trap:</strong> Set up situations where your opponent must tap into a hand that will go to exactly 0</li>
+                        </ul>
+
+                        <h5>Mid-Game Tactics</h5>
+                        <ul>
+                            <li><strong>Hand Balance:</strong> Try to maintain flexibility with both hands alive</li>
+                            <li><strong>Split Timing:</strong> Split at strategic moments to create favorable configurations</li>
+                            <li><strong>Force Repetition:</strong> Force your opponent into making illegal moves due to state repetition</li>
+                        </ul>
+
+                        <h5>Advanced Techniques</h5>
+                        <ul>
+                            <li><strong>Mirror Lock:</strong> Create situations where any move your opponent makes can be mirrored</li>
+                            <li><strong>Dead Hand Revival:</strong> Strategically revive a dead hand through splitting</li>
+                            <li><strong>Forced Lines:</strong> Create sequences where your opponent has only one legal move</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h4 class="mb-0">AI Difficulty Levels</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h5>Novice</h5>
+                            <p>
+                                Plays with limited lookahead (2 moves) and occasionally makes random moves. Good for beginners learning the game.
+                            </p>
+                        </div>
+                        <div class="mb-3">
+                            <h5>Intermediate</h5>
+                            <p>
+                                Uses moderate search depth (4 moves) and consistently makes solid moves. Provides a balanced challenge for regular players.
+                            </p>
+                        </div>
+                        <div>
+                            <h5>Master</h5>
+                            <p>
+                                Uses deep search (6+ moves) combined with the pre-computed database for perfect play when possible. Extremely challenging even for experienced players.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h4 class="mb-0">Quick Reference</h4>
+                    </div>
+                    <div class="card-body">
+                        <h5>Hand Values</h5>
+                        <p>
+                            Each hand can have 0-4 fingers. When a hand would reach 5+ fingers, take the modulo 5 (remainder after dividing by 5).
+                        </p>
+                        <div class="alert alert-secondary">
+                            Example: 3 + 4 = 7 % 5 = 2
+                        </div>
+
+                        <h5>Legal Moves</h5>
+                        <ul>
+                            <li>Tap: You can only tap with a non-dead hand (1-4 fingers)</li>
+                            <li>Split: Must maintain the same total and can't reverse the configuration</li>
+                        </ul>
+
+                        <h5>Winning</h5>
+                        <p>
+                            Make both of your opponent's hands dead (0 fingers each).
+                        </p>
+                        
+                        <a href="{{ url_for('index') }}" class="btn btn-primary mt-3">
+                            <i class="bi bi-controller"></i> Play Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="mt-4 text-center text-muted">
+            <p>&copy; 2023 Chopfish - An advanced Chopsticks game engine</p>
+        </footer>
+    </div>
+</body>
+</html>
